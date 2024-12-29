@@ -83,7 +83,6 @@ const PrivacyPolicy = () => {
 		  <strong>Email:</strong> <a href="mailto:support@text-tarot.com" className="text-blue-500 hover:underline">support@text-tarot.com</a>
 		</p>
 
-		<p className="text-sm text-center text-gray-600 mt-8">© 2024 Text Tarot. All rights reserved.</p>
 	  </div>
 	</>
   );

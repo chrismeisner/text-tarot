@@ -21,7 +21,7 @@ function App() {
         <Header />
         
         {/* Main Content */}
-        <main className="flex-1 pt-16 pb-16">
+        <main className="flex-1 pt-16">
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/terms-of-service" element={<TermsOfService />} />
@@ -29,7 +29,7 @@ function App() {
           </Routes>
         </main>
         
-        {/* Fixed Footer */}
+        {/* Footer Positioned Below Main Content */}
         <Footer />
       </div>
     </Router>
