@@ -12,16 +12,16 @@ import Footer from "./components/Footer";
 function App() {
   return (
     <Router>
-      <div className="App" style={{ display: "flex", flexDirection: "column", minHeight: "100vh" }}>
+      <div className="flex flex-col min-h-screen">
         
         {/* Main Content */}
-        <div style={{ flex: "1" }}>
+        <main className="flex-1">
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/terms-of-service" element={<TermsOfService />} />
             <Route path="/privacy-policy" element={<PrivacyPolicy />} />
           </Routes>
-        </div>
+        </main>
         
         {/* Global Footer */}
         <Footer />
