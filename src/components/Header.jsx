@@ -15,11 +15,8 @@ const Header = () => {
 			</Link>
 		  </div>
 		  
-		  {/* Navigation Links (Optional) */}
+		  {/* Navigation Links (Terms of Service & Privacy Policy) */}
 		  <nav className="hidden md:flex space-x-4">
-			<Link to="/" className="text-gray-700 hover:text-gray-900">
-			  Home
-			</Link>
 			<Link to="/terms-of-service" className="text-gray-700 hover:text-gray-900">
 			  Terms of Service
 			</Link>

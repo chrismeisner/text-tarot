@@ -30,7 +30,7 @@ function App() {
         </main>
         
         {/* Fixed Footer */}
-        {/* Since the footer is fixed, it's already included and does not need to be placed here */}
+        <Footer />
       </div>
     </Router>
   );
