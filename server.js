@@ -1,3 +1,5 @@
+// File: /Users/chrismeisner/Projects/text-tarot/server.js
+
 // server.js
 const express = require('express');
 const path = require('path');
@@ -274,7 +276,7 @@ app.get('*', (req, res) => {
 });
 
 // Start server
-const port = process.env.PORT || 3000;
+const port = process.env.PORT || 5000; // Changed default port from 3000 to 5000
 app.listen(port, () => {
   console.log(`Server is running on http://localhost:${port}`);
 });
