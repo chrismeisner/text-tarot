@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React from "react";
 import Countdown from "react-countdown";
 
 // Define the target launch date: February 10, 2025, at 10 AM PST
@@ -37,21 +37,6 @@ const renderer = ({ days, hours, minutes, seconds, completed }) => {
 };
 
 const Home = () => {
-  useEffect(() => {
-	// Fetch the test-env endpoint
-	fetch('/test-env')
-	  .then((response) => response.json())
-	  .then((data) => {
-		console.log('Environment Test:', data);
-		if (data.success) {
-		  console.log('✅ Environment variables and connections are working.');
-		} else {
-		  console.error('❌ Environment connection failed:', data.error);
-		}
-	  })
-	  .catch((error) => console.error('❌ Error testing environment:', error));
-  }, []);
-
   return (
 	<>
 	  {/* Full-Screen Centered Container Without Padding */}

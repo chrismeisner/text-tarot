@@ -1,5 +1,3 @@
-// File: /Users/chrismeisner/Projects/text-tarot/server.js
-
 // server.js
 const express = require('express');
 const path = require('path');
@@ -47,9 +45,7 @@ app.post('/sms', async (req, res) => {
   let matchedKeyword = null;
   const normalizedBody = Body.trim().toLowerCase();
 
-  // --------------------------
-  // 2) Special logic for TAROT and DRAW
-  // --------------------------
+  // Special logic for TAROT and DRAW
   if (normalizedBody === 'tarot') {
     matchedKeyword = 'TAROT';
 
@@ -82,7 +78,6 @@ app.post('/sms', async (req, res) => {
   } else if (normalizedBody === 'draw') {
     matchedKeyword = 'DRAW';
 
-    // Check if they have NEWMOON => unlimited draws
     let unlimited = false;
     try {
       const existingNewMoonUsers = await usersTable
@@ -101,11 +96,9 @@ app.post('/sms', async (req, res) => {
     }
 
     if (unlimited) {
-      // They can always do a reading, no checks needed
       responseMessage = await performCardDraw();
       console.log(`User ${From} performed an unlimited reading.`);
     } else {
-      // No NEWMOON => normal check for "DRAW" usage
       const existingDrawUsers = await usersTable
         .select({
           filterByFormula: `AND({Mobile} = '${From}', {Keyword} = 'DRAW')`,
@@ -117,11 +110,9 @@ app.post('/sms', async (req, res) => {
         responseMessage = "Sorry, you've already used your free reading.";
         console.log(`User ${From} already has DRAW => free reading used.`);
       } else {
-        // They have NOT used free reading => do the random draw
         console.log(`Performing free reading for ${From}...`);
         responseMessage = await performCardDraw();
 
-        // Mark free reading as used by creating (Mobile=From, Keyword='DRAW')
         try {
           await usersTable.create({
             Mobile: From,
@@ -136,9 +127,6 @@ app.post('/sms', async (req, res) => {
       }
     }
   } else {
-    // --------------------------
-    // 3) Generic Keywords logic
-    // --------------------------
     try {
       const matchedRecords = await keywordsTable
         .select({
@@ -155,7 +143,6 @@ app.post('/sms', async (req, res) => {
           console.log(`Matched generic keyword='${matchedKeyword}'.`);
         }
 
-        // **New**: Log this generic keyword usage in the Users table
         await upsertUser(From, matchedKeyword);
       } else {
         console.log(`No match in Keywords for '${Body}'. Using default secret password response.`);
@@ -165,11 +152,9 @@ app.post('/sms', async (req, res) => {
     }
   }
 
-  // 4) Build Twilio response
   const twiml = new twilio.twiml.MessagingResponse();
   twiml.message(responseMessage);
 
-  // 5) Log to Outbox
   try {
     await outboxTable.create({
       Mobile: From,
@@ -181,13 +166,9 @@ app.post('/sms', async (req, res) => {
     console.error('Error logging to Outbox:', error);
   }
 
-  // 6) Send back
   res.type('text/xml').send(twiml.toString());
 });
 
-/**
- * Helper function to perform a random card draw, returns the text.
- */
 async function performCardDraw() {
   const randomCard = Math.floor(Math.random() * 78) + 1;
   const orientation = Math.random() < 0.5 ? 'upright' : 'reversed';
@@ -213,11 +194,6 @@ async function performCardDraw() {
   }
 }
 
-/**
- * Helper function to "upsert" (create or update) a user in the Users table.
- * If (Mobile, Keyword) exists, update 'Last Used' timestamp;
- * otherwise, create a new record.
- */
 async function upsertUser(mobile, keyword) {
   try {
     const existingUsers = await usersTable
@@ -228,14 +204,12 @@ async function upsertUser(mobile, keyword) {
       .firstPage();
 
     if (existingUsers.length > 0) {
-      // Update 'Last Used'
       const userRecordId = existingUsers[0].id;
       await usersTable.update(userRecordId, {
         'Last Used': new Date().toISOString(),
       });
       console.log(`Updated existing user (Mobile=${mobile}, Keyword=${keyword}).`);
     } else {
-      // Create new
       await usersTable.create({
         Mobile: mobile,
         Keyword: keyword,
@@ -249,36 +223,31 @@ async function upsertUser(mobile, keyword) {
   }
 }
 
-// Test endpoint (only in development)
-if (process.env.NODE_ENV !== 'production') {
-  app.get('/test-env', async (req, res) => {
-    try {
-      const records = await inboxTable.select({ maxRecords: 1 }).firstPage();
-      console.log('Airtable connection successful:', records.length > 0);
+app.get('/test-env', async (req, res) => {
+  try {
+    const records = await inboxTable.select({ maxRecords: 1 }).firstPage();
+    console.log('Airtable connection successful:', records.length > 0);
 
-      res.json({
-        success: true,
-        message: 'Environment connection successful',
-        airtableCheck: 'Connected',
-      });
-    } catch (error) {
-      console.error('Error checking Airtable connection:', error);
-      res.json({
-        success: false,
-        message: 'Environment connection failed',
-        error: error.message,
-      });
-    }
-  });
-}
+    res.json({
+      success: true,
+      message: 'Environment connection successful',
+      airtableCheck: 'Connected',
+    });
+  } catch (error) {
+    console.error('Error checking Airtable connection:', error);
+    res.json({
+      success: false,
+      message: 'Environment connection failed',
+      error: error.message,
+    });
+  }
+});
 
-// Catch-all route for React
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'build', 'index.html'));
 });
 
-// Start server
-const port = process.env.PORT || 5000; // Changed default port from 3000 to 5000
+const port = process.env.PORT;
 app.listen(port, () => {
   console.log(`Server is running on http://localhost:${port}`);
 });
