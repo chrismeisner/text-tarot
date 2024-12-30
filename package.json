@@ -25,11 +25,12 @@
     "tailwindcss": "^3.4.17"
   },
   "scripts": {
-    "start": "react-scripts start",
+    "start": "node server.js",
     "build": "react-scripts build",
     "test": "react-scripts test",
     "eject": "react-scripts eject",
-    "server": "node server.js"
+    "server": "node server.js",
+    "heroku-postbuild": "npm run build"
   },
   "proxy": "http://localhost:5000",
   "eslintConfig": {

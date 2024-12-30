@@ -249,26 +249,28 @@ async function upsertUser(mobile, keyword) {
   }
 }
 
-// Test endpoint
-app.get('/test-env', async (req, res) => {
-  try {
-    const records = await inboxTable.select({ maxRecords: 1 }).firstPage();
-    console.log('Airtable connection successful:', records.length > 0);
+// Test endpoint (only in development)
+if (process.env.NODE_ENV !== 'production') {
+  app.get('/test-env', async (req, res) => {
+    try {
+      const records = await inboxTable.select({ maxRecords: 1 }).firstPage();
+      console.log('Airtable connection successful:', records.length > 0);
 
-    res.json({
-      success: true,
-      message: 'Environment connection successful',
-      airtableCheck: 'Connected',
-    });
-  } catch (error) {
-    console.error('Error checking Airtable connection:', error);
-    res.json({
-      success: false,
-      message: 'Environment connection failed',
-      error: error.message,
-    });
-  }
-});
+      res.json({
+        success: true,
+        message: 'Environment connection successful',
+        airtableCheck: 'Connected',
+      });
+    } catch (error) {
+      console.error('Error checking Airtable connection:', error);
+      res.json({
+        success: false,
+        message: 'Environment connection failed',
+        error: error.message,
+      });
+    }
+  });
+}
 
 // Catch-all route for React
 app.get('*', (req, res) => {
