@@ -1,7 +1,4 @@
-// src/pages/Home.jsx
-
-import React from "react";
-import { Helmet } from "react-helmet";
+import React, { useEffect } from "react";
 import Countdown from "react-countdown";
 
 // Define the target launch date: February 10, 2025, at 10 AM PST
@@ -40,17 +37,23 @@ const renderer = ({ days, hours, minutes, seconds, completed }) => {
 };
 
 const Home = () => {
+  useEffect(() => {
+	// Fetch the test-env endpoint
+	fetch('/test-env')
+	  .then((response) => response.json())
+	  .then((data) => {
+		console.log('Environment Test:', data);
+		if (data.success) {
+		  console.log('✅ Environment variables and connections are working.');
+		} else {
+		  console.error('❌ Environment connection failed:', data.error);
+		}
+	  })
+	  .catch((error) => console.error('❌ Error testing environment:', error));
+  }, []);
+
   return (
 	<>
-	  {/* Helmet for SEO and Page Metadata */}
-	  <Helmet>
-		<title>Text Tarot - Coming Soon</title>
-		<meta
-		  name="description"
-		  content="Text Tarot is launching soon! Get ready for personalized AI-powered Tarot readings via SMS."
-		/>
-	  </Helmet>
-
 	  {/* Full-Screen Centered Container Without Padding */}
 	  <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-r from-purple-500 to-indigo-600">
 		{/* Overlay Container */}
@@ -59,7 +62,7 @@ const Home = () => {
 		  <p className="text-lg md:text-2xl mb-6">
 			We're working hard to bring you personalized Tarot readings via SMS.
 		  </p>
-		  
+
 		  {/* Countdown Timer */}
 		  <Countdown date={launchDate} renderer={renderer} />
 
