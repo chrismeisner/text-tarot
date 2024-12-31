@@ -159,8 +159,19 @@ async function performCardDraw(userContext = '') {
  * Twilio webhook for incoming SMS
  */
 app.post('/sms', async (req, res) => {
-  const { Body, From } = req.body;
-  console.log(`Received SMS from ${From}: ${Body}`);
+  const { Body, From, To } = req.body;
+  console.log(`Received SMS from ${From} to ${To}: ${Body}`);
+
+  // Optional: branch logic based on which Twilio number was messaged
+  if (To === '+18555174207') {
+    console.log('This message was sent to the dev/test number.');
+    // You could optionally run different logic here
+  } else if (To === '+19866682768') {
+    console.log('This message was sent to the live/production number.');
+    // Possibly identical or different logic
+  } else {
+    console.log('Unknown or fallback Twilio number.');
+  }
 
   // 1) Log the inbound message in the Inbox table
   try {
