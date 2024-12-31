@@ -14,12 +14,15 @@ const Home = () => {
 	  <div className="max-w-md w-full text-black">
 		<h1 className="text-2xl font-bold mb-2">Text Tarot 🔮</h1>
 
+		{/* Subtitle under the headline */}
+		<p className="mb-4">Click the magic button below to get started ✨</p>
+
 		{/* Magic Sign Up Button: opens SMS app with "TAROT" pre-filled */}
 		<a
 		  href={`sms:+18555174207?body=TAROT`}
 		  className="inline-block mb-6 px-4 py-2 border border-black bg-gray-200 text-black hover:bg-gray-300"
 		>
-		  Text TAROT to Get Started
+		  Text TAROT
 		</a>
 
 		<ol className="list-decimal ml-4 mb-8 space-y-2">
@@ -49,7 +52,7 @@ const Home = () => {
 
 		{/* TAROT Field */}
 		<div className="mb-6">
-		  <label className="block mb-1 font-semibold">Keyword:</label>
+		  <label className="block mb-1 font-semibold">Sign Up:</label>
 		  <div className="flex">
 			<input
 			  type="text"
