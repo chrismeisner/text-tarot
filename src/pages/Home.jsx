@@ -15,8 +15,8 @@ const Home = () => {
 		<h1 className="text-2xl font-bold mb-6">Text TAROT</h1>
 		<ol className="list-decimal ml-4 mb-8 space-y-2">
 		  <li>Copy the phone number below and text “TAROT” to sign up.</li>
-		  <li>Once you’ve signed up, text “DRAW” for your reading.</li>
-		  <li>Include extra context by typing something like “DRAW about my new job.”</li>
+		  <li>Once you’ve signed up, text “DRAW” for a general reading.</li>
+		  <li>Include extra context by typing something like “Draw about my new job.”</li>
 		</ol>
 
 		{/* Phone Number Field */}
