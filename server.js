@@ -84,17 +84,20 @@ function getPstDayLabelWithCutoff(date = new Date()) {
 
 /**
  * Helper function to get AI-generated card insight
- * - Asks for a 60-word insight.
- * - Mentions imagery/iconography if relevant.
+ * - Increased word count target (~70 words).
+ * - Explicitly mention the symbolism/iconography of the card.
+ * - Incorporate user context if provided; if none, give more detail on symbolism.
  */
 async function getAiCardInsight(cardName, orientation, userContext = '') {
   const userContextString = userContext
-    ? `\n\nAdditional context from the user:\n"${userContext}"`
-    : '';
+    ? `Please incorporate the user's context: "${userContext}"`
+    : `If no context is given, provide extra detail on the card's deeper symbolic meaning.`;
 
+  // Prompt updated to ~70 words with explicit mention of symbolism/iconography
   const prompt = `
-Write a 60-word insight on the tarot card "${cardName}" in the "${orientation}" position.
-Feel free to mention relevant imagery and iconography typically depicted on the card.
+Write a ~70-word insight on the tarot card "${cardName}" in the "${orientation}" position.
+Reference the classical symbolism and iconography typically depicted on this card, explaining
+what each element represents and how it ties into the card’s meaning.
 ${userContextString}
 Use a warm, friendly, and concise tone.
   `.trim();
@@ -107,7 +110,7 @@ Use a warm, friendly, and concise tone.
         { role: 'user', content: prompt },
       ],
       temperature: 0.7,
-      max_tokens: 200, // allow for a slightly longer response
+      max_tokens: 200,
     });
 
     const aiText = completion.choices[0].message.content.trim();
