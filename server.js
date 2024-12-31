@@ -32,8 +32,59 @@ const openai = new OpenAI({
 app.use(express.static(path.join(__dirname, 'build')));
 
 /**
+ * Returns the 'day label' for PST with a 1am cutoff.
+ * If the local PST hour is < 1, we consider it "yesterday."
+ * Otherwise, it’s "today."
+ */
+function getPstDayLabelWithCutoff(date = new Date()) {
+  // Convert the given date to PST
+  const pstString = date.toLocaleString('en-US', {
+    timeZone: 'America/Los_Angeles',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour12: false,
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+  });
+
+  // pstString example: "10/02/2023, 00:15:30" (month/day/year, HH:mm:ss)
+  const [datePart, timePart] = pstString.split(', ');
+  const [month, day, year] = datePart.split('/');
+  const [hour, minute, second] = timePart.split(':');
+
+  const pstHour = parseInt(hour, 10);
+
+  // Create a Date object from the PST components:
+  const pstDateObj = new Date(
+    parseInt(year, 10),
+    parseInt(month, 10) - 1,
+    parseInt(day, 10),
+    parseInt(hour, 10),
+    parseInt(minute, 10),
+    parseInt(second, 10)
+  );
+
+  // If it’s before 1am PST, we consider it part of "yesterday."
+  if (pstHour < 1) {
+    const dayBefore = new Date(pstDateObj.getTime() - 24 * 60 * 60 * 1000);
+    const y = dayBefore.getFullYear();
+    const m = String(dayBefore.getMonth() + 1).padStart(2, '0');
+    const d = String(dayBefore.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  }
+
+  // Otherwise, it's "today."
+  const y = pstDateObj.getFullYear();
+  const m = String(pstDateObj.getMonth() + 1).padStart(2, '0');
+  const d = String(pstDateObj.getDate()).padStart(2, '0');
+  return `${y}-${m}-${d}`;
+}
+
+/**
  * Helper function to get AI-generated card insight
- * - Now asks for a 60-word insight.
+ * - Asks for a 60-word insight.
  * - Mentions imagery/iconography if relevant.
  */
 async function getAiCardInsight(cardName, orientation, userContext = '') {
@@ -56,7 +107,7 @@ Use a warm, friendly, and concise tone.
         { role: 'user', content: prompt },
       ],
       temperature: 0.7,
-      max_tokens: 200, // Increased to allow for a slightly longer response
+      max_tokens: 200, // allow for a slightly longer response
     });
 
     const aiText = completion.choices[0].message.content.trim();
@@ -87,7 +138,7 @@ async function performCardDraw(userContext = '') {
       const cardName = cardRecords[0].get('Name') || 'an unknown card';
       const aiInsight = await getAiCardInsight(cardName, orientation, userContext);
 
-      // Provide correct article for upright vs. reversed
+      // Provide correct article for upright vs reversed
       const orientationDisplay = orientation === 'upright' ? 'an upright' : 'a reversed';
 
       return `Your card is ${orientationDisplay} ${cardName}\n\n${aiInsight}`;
@@ -149,20 +200,15 @@ app.post('/sms', async (req, res) => {
       responseMessage = "You get one free tarot reading per day. Text 'DRAW' to see if you're eligible for another reading today.";
       console.log(`User ${From} has DRAW => daily usage applies.`);
     } else {
-      responseMessage = "Welcome! Text 'DRAW' to get your free daily reading. (One reading every 24 hours, unless you have NEWMOON.)";
+      responseMessage = "Welcome! Text 'DRAW' to get your free daily reading. (One reading each day after 1am PST, unless you have NEWMOON.)";
       console.log(`User ${From} does not have DRAW => instruct them to text DRAW.`);
     }
   } else if (normalizedBody.startsWith('draw')) {
     matchedKeyword = 'DRAW';
 
-    /**
-     * Extract userContext from the rest of the user’s message.
-     * Example: "Draw this card to explore my relationship with my dad"
-     * => userContext = "this card to explore my relationship with my dad"
-     */
-    const userContext = Body.trim().length > 4
-      ? Body.trim().substring(4).trim()
-      : '';
+    // Extract userContext from the rest of the user’s message
+    const userContext =
+      Body.trim().length > 4 ? Body.trim().substring(4).trim() : '';
 
     let unlimited = false;
     try {
@@ -186,9 +232,7 @@ app.post('/sms', async (req, res) => {
       responseMessage = await performCardDraw(userContext);
       console.log(`User ${From} performed an unlimited reading with context: ${userContext}`);
     } else {
-      /**
-       * Daily usage limit logic
-       */
+      // Daily usage logic (ONE reading per PST day, new day after 1am PST)
       try {
         const existingDrawUsers = await usersTable
           .select({
@@ -197,36 +241,23 @@ app.post('/sms', async (req, res) => {
           })
           .firstPage();
 
+        const currentPstDayLabel = getPstDayLabelWithCutoff(new Date());
+
         if (existingDrawUsers.length > 0) {
           const userRecord = existingDrawUsers[0];
-          const lastUsedStr = userRecord.get('Last Used');
-          const lastUsedDate = lastUsedStr ? new Date(lastUsedStr) : null;
-          const now = new Date();
+          const lastUsedDayLabel = userRecord.get('Last Used');
 
-          if (!lastUsedDate) {
-            // If no Last Used, treat this as their first daily reading
+          if (!lastUsedDayLabel || lastUsedDayLabel !== currentPstDayLabel) {
+            // Different day => allow a new reading
             responseMessage = await performCardDraw(userContext);
             await usersTable.update(userRecord.id, {
-              'Last Used': now.toISOString(),
+              'Last Used': currentPstDayLabel,
             });
-            console.log(`Updated user (Mobile=${From}) with a new Last Used date.`);
+            console.log(`User ${From} performed a daily reading with context: ${userContext}`);
           } else {
-            const diffMs = now - lastUsedDate;
-            const diffHours = diffMs / (1000 * 60 * 60);
-
-            if (diffHours >= 24) {
-              // Let them draw again
-              responseMessage = await performCardDraw(userContext);
-              await usersTable.update(userRecord.id, {
-                'Last Used': now.toISOString(),
-              });
-              console.log(`User ${From} performed a new daily reading with context: ${userContext}`);
-            } else {
-              // Not enough time has passed
-              const hoursRemaining = (24 - diffHours).toFixed(1);
-              responseMessage = `Sorry, you must wait another ${hoursRemaining} hours before your next daily reading. Come back soon!`;
-              console.log(`User ${From} attempted a daily reading within 24 hours => blocked.`);
-            }
+            // Already had today's reading
+            responseMessage = `Sorry, you've already had your reading for today. Please come back after 1am PST tomorrow!`;
+            console.log(`User ${From} attempted another reading today => blocked.`);
           }
         } else {
           // Brand new user for "DRAW"
@@ -236,7 +267,7 @@ app.post('/sms', async (req, res) => {
               Mobile: From,
               Keyword: 'DRAW',
               Status: 'active',
-              'Last Used': new Date().toISOString(),
+              'Last Used': currentPstDayLabel,
             });
             console.log(`Created user row for ${From} => daily reading started with context: ${userContext}`);
           } catch (error) {
@@ -245,11 +276,12 @@ app.post('/sms', async (req, res) => {
         }
       } catch (error) {
         console.error('Error fetching user for daily usage:', error);
-        responseMessage = 'An error occurred while checking your daily reading status. Please try again later!';
+        responseMessage =
+          'An error occurred while checking your daily reading status. Please try again later!';
       }
     }
   } else {
-    // Check if it matches any generic keyword in Keywords table
+    // Check if it matches any generic keyword in the Keywords table
     try {
       const matchedRecords = await keywordsTable
         .select({
