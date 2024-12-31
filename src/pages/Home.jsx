@@ -12,7 +12,7 @@ const Home = () => {
   return (
 	<div className="flex flex-col items-center justify-center min-h-screen bg-white p-4">
 	  <div className="max-w-md w-full text-black">
-		<h1 className="text-2xl font-bold mb-6">Text TAROT</h1>
+		<h1 className="text-2xl font-bold mb-6">Text Tarot 🔮</h1>
 		<ol className="list-decimal ml-4 mb-8 space-y-2">
 		  <li>Copy the phone number below and text “TAROT” to sign up.</li>
 		  <li>Once you’ve signed up, text “DRAW” for a general reading.</li>
