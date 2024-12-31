@@ -165,10 +165,8 @@ app.post('/sms', async (req, res) => {
   // Optional: branch logic based on which Twilio number was messaged
   if (To === '+18555174207') {
     console.log('This message was sent to the dev/test number.');
-    // You could optionally run different logic here
   } else if (To === '+19866682768') {
     console.log('This message was sent to the live/production number.');
-    // Possibly identical or different logic
   } else {
     console.log('Unknown or fallback Twilio number.');
   }
@@ -217,10 +215,67 @@ app.post('/sms', async (req, res) => {
       responseMessage = "Welcome! Text 'DRAW' to get your free daily reading. (One reading each day after 1am PST, unless you have NEWMOON.)";
       console.log(`User ${From} does not have DRAW => instruct them to text DRAW.`);
     }
+
+    // Upsert the user in the Users table for TAROT
+    await upsertUser(From, matchedKeyword);
+
   } else if (normalizedBody.startsWith('draw')) {
     matchedKeyword = 'DRAW';
 
-    // Extract userContext from the rest of the user’s message
+    // 1) Check if user is signed up with 'TAROT' first
+    let tarotUsers;
+    try {
+      tarotUsers = await usersTable
+        .select({
+          filterByFormula: `AND({Mobile} = '${From}', {Keyword} = 'TAROT')`,
+          maxRecords: 1,
+        })
+        .firstPage();
+    } catch (error) {
+      console.error('Error checking TAROT signup:', error);
+      responseMessage =
+        'An error occurred while checking your signup status. Please try again later!';
+
+      // Twilio response
+      const twiml = new twilio.twiml.MessagingResponse();
+      twiml.message(responseMessage);
+      // Log outbox
+      try {
+        await outboxTable.create({
+          Mobile: From,
+          Message: responseMessage,
+          Keyword: matchedKeyword || '',
+        });
+      } catch (err) {
+        console.error('Error logging to Outbox:', err);
+      }
+
+      return res.type('text/xml').send(twiml.toString());
+    }
+
+    // If user does not have a TAROT record, block them from proceeding
+    if (!tarotUsers || tarotUsers.length === 0) {
+      responseMessage = "You haven't signed up for Tarot yet. Please text 'TAROT' first to sign up!";
+      console.log(`User ${From} tried to draw without TAROT signup.`);
+
+      // Twilio response
+      const twiml = new twilio.twiml.MessagingResponse();
+      twiml.message(responseMessage);
+      // Log in Outbox
+      try {
+        await outboxTable.create({
+          Mobile: From,
+          Message: responseMessage,
+          Keyword: matchedKeyword || '',
+        });
+      } catch (error) {
+        console.error('Error logging to Outbox:', error);
+      }
+
+      return res.type('text/xml').send(twiml.toString());
+    }
+
+    // 2) If user is signed up, proceed with existing draw logic
     const userContext =
       Body.trim().length > 4 ? Body.trim().substring(4).trim() : '';
 
@@ -270,7 +325,7 @@ app.post('/sms', async (req, res) => {
             console.log(`User ${From} performed a daily reading with context: ${userContext}`);
           } else {
             // Already had today's reading
-            responseMessage = `Sorry, you've already had your reading for today. Please come back after 1am PST tomorrow!`;
+            responseMessage = `Sorry, you've already had your reading for today. Please come back tomorrow!`;
             console.log(`User ${From} attempted another reading today => blocked.`);
           }
         } else {
@@ -352,10 +407,13 @@ async function upsertUser(mobile, keyword) {
       })
       .firstPage();
 
+    // Use the same PST day label for consistency
+    const currentPstDayLabel = getPstDayLabelWithCutoff(new Date());
+
     if (existingUsers.length > 0) {
       const userRecordId = existingUsers[0].id;
       await usersTable.update(userRecordId, {
-        'Last Used': new Date().toISOString(),
+        'Last Used': currentPstDayLabel,
       });
       console.log(`Updated existing user (Mobile=${mobile}, Keyword=${keyword}).`);
     } else {
@@ -363,7 +421,7 @@ async function upsertUser(mobile, keyword) {
         Mobile: mobile,
         Keyword: keyword,
         Status: 'active',
-        'Last Used': new Date().toISOString(),
+        'Last Used': currentPstDayLabel,
       });
       console.log(`Created new user record (Mobile=${mobile}, Keyword=${keyword}).`);
     }
