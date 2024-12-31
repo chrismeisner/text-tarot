@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React from "react";
 
 const Home = () => {
   const phoneNumber = "(855) 517-4207";
@@ -10,9 +10,18 @@ const Home = () => {
   };
 
   return (
-	<div className="flex flex-col items-center justify-center min-h-screen bg-white p-4">
+	<div className="flex flex-col items-center min-h-screen bg-white p-4 pt-8">
 	  <div className="max-w-md w-full text-black">
-		<h1 className="text-2xl font-bold mb-6">Text Tarot 🔮</h1>
+		<h1 className="text-2xl font-bold mb-2">Text Tarot 🔮</h1>
+
+		{/* Magic Sign Up Button: opens SMS app with "TAROT" pre-filled */}
+		<a
+		  href={`sms:+18555174207?body=TAROT`}
+		  className="inline-block mb-6 px-4 py-2 border border-black bg-gray-200 text-black hover:bg-gray-300"
+		>
+		  Text TAROT to Get Started
+		</a>
+
 		<ol className="list-decimal ml-4 mb-8 space-y-2">
 		  <li>Copy the phone number below and text “TAROT” to sign up.</li>
 		  <li>Once you’ve signed up, text “DRAW” for a general reading.</li>
